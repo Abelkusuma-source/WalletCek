@@ -41,7 +41,11 @@ fun ReportScreen(viewModel: WalletViewModel) {
 
     val categoryBreakdown = remember(filteredTransactions, categories) {
         filteredTransactions.groupBy { it.categoryId }.map { (categoryId, trans) ->
-            val categoryName = categories.find { it.id == categoryId }?.name ?: "Unknown"
+            val categoryName = if (categoryId == -1) {
+                "Hutang/Piutang"
+            } else {
+                categories.find { it.id == categoryId }?.name ?: "Unknown"
+            }
             categoryName to trans.sumOf { it.amount }
         }.sortedByDescending { it.second }
     }

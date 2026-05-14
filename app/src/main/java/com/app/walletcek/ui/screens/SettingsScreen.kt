@@ -3,9 +3,13 @@ package com.app.walletcek.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.SettingsSuggest
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,10 +27,48 @@ fun SettingsScreen(viewModel: WalletViewModel) {
     val categories by viewModel.allCategories.collectAsState(initial = emptyList())
     var showAddDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
+    
+    val listState = rememberLazyListState()
+    
+    // Auto scroll to top when categories count increases
+    LaunchedEffect(categories.size) {
+        if (categories.isNotEmpty()) {
+            listState.animateScrollToItem(0)
+        }
+    }
+    
+    val themeMode by viewModel.themeMode
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Settings") })
+            TopAppBar(
+                title = { Text("Settings") },
+                actions = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { viewModel.setThemeMode("LIGHT") }) {
+                            Icon(
+                                imageVector = Icons.Default.LightMode,
+                                contentDescription = "Light Mode",
+                                tint = if (themeMode == "LIGHT") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        IconButton(onClick = { viewModel.setThemeMode("DARK") }) {
+                            Icon(
+                                imageVector = Icons.Default.DarkMode,
+                                contentDescription = "Dark Mode",
+                                tint = if (themeMode == "DARK") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        IconButton(onClick = { viewModel.setThemeMode("SYSTEM") }) {
+                            Icon(
+                                imageVector = Icons.Default.SettingsSuggest,
+                                contentDescription = "System Mode",
+                                tint = if (themeMode == "SYSTEM") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
@@ -40,7 +82,7 @@ fun SettingsScreen(viewModel: WalletViewModel) {
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // Reset Data Section
+            // ... Danger Zone ...
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
@@ -71,7 +113,10 @@ fun SettingsScreen(viewModel: WalletViewModel) {
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                state = listState
+            ) {
                 items(categories) { category ->
                     CategoryListItem(
                         category = category,
@@ -120,14 +165,27 @@ fun SettingsScreen(viewModel: WalletViewModel) {
 @Composable
 fun CategoryListItem(category: CategoryEntity, onDelete: () -> Unit) {
     ListItem(
-        headlineContent = { Text(category.name) },
+        headlineContent = { 
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(category.name)
+                if (!category.isDefault) {
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(32.dp).padding(start = 8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete, 
+                            contentDescription = "Delete", 
+                            tint = Color.Red,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+        },
         supportingContent = { Text(category.type.name) },
         trailingContent = {
-            if (!category.isDefault) {
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
-                }
-            } else {
+            if (category.isDefault) {
                 Text(
                     "Default",
                     style = MaterialTheme.typography.labelSmall,

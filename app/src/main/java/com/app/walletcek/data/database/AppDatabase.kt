@@ -6,16 +6,19 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.app.walletcek.data.dao.CategoryDao
+import com.app.walletcek.data.dao.DebtDao
 import com.app.walletcek.data.dao.TransactionDao
 import com.app.walletcek.data.entity.CategoryEntity
+import com.app.walletcek.data.entity.DebtEntity
 import com.app.walletcek.data.entity.TransactionEntity
 import com.app.walletcek.data.utils.Converters
 
-@Database(entities = [CategoryEntity::class, TransactionEntity::class], version = 1, exportSchema = false)
+@Database(entities = [CategoryEntity::class, TransactionEntity::class, DebtEntity::class], version = 2, exportSchema = false)
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun transactionDao(): TransactionDao
+    abstract fun debtDao(): DebtDao
 
     companion object {
         @Volatile

@@ -6,5 +6,5 @@ import com.app.walletcek.data.repository.WalletRepository
 
 class WalletApplication : Application() {
     private val database by lazy { AppDatabase.getDatabase(this) }
-    val repository by lazy { WalletRepository(database.categoryDao(), database.transactionDao()) }
+    val repository by lazy { WalletRepository(database.categoryDao(), database.transactionDao(), database.debtDao()) }
 }

@@ -30,7 +30,6 @@ fun AddTransactionScreen(
     var note by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var selectedCategory by remember { mutableStateOf<CategoryEntity?>(null) }
-    var expanded by remember { mutableStateOf(false) }
 
     val categories by viewModel.getCategoriesByType(selectedType).collectAsState(initial = emptyList())
 
@@ -88,34 +87,20 @@ fun AddTransactionScreen(
                 prefix = { Text("Rp ") }
             )
 
-            // Category Dropdown
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded }
+            // Category Selection (Scrollable)
+            Text("Category", style = MaterialTheme.typography.labelLarge)
+            androidx.compose.foundation.lazy.LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 4.dp)
             ) {
-                OutlinedTextField(
-                    value = selectedCategory?.name ?: "Select Category",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Category") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth()
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    categories.forEach { category ->
-                        DropdownMenuItem(
-                            text = { Text(category.name) },
-                            onClick = {
-                                selectedCategory = category
-                                expanded = false
-                            }
-                        )
-                    }
+                items(categories.size) { index ->
+                    val category = categories[index]
+                    FilterChip(
+                        selected = selectedCategory == category,
+                        onClick = { selectedCategory = category },
+                        label = { Text(category.name) }
+                    )
                 }
             }
 

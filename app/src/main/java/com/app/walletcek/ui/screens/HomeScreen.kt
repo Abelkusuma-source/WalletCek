@@ -36,12 +36,15 @@ fun HomeScreen(viewModel: WalletViewModel) {
     var showDeleteDialog by remember { mutableStateOf<TransactionEntity?>(null) }
 
     val totalIncome = remember(transactions) {
-        transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+        transactions.filter { it.type == TransactionType.INCOME && it.categoryId != -1 }.sumOf { it.amount }
     }
     val totalExpense = remember(transactions) {
-        transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+        transactions.filter { it.type == TransactionType.EXPENSE && it.categoryId != -1 }.sumOf { it.amount }
     }
-    val balance = totalIncome - totalExpense
+    val balance = remember(transactions) {
+        transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount } -
+                transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+    }
 
     if (showDeleteDialog != null) {
         AlertDialog(
@@ -176,19 +179,37 @@ fun TransactionItem(
     categoryName: String,
     onLongClick: () -> Unit
 ) {
+    val isDebtTransaction = transaction.categoryId == -1
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .combinedClickable(
-                onClick = {},
-                onLongClick = onLongClick
+            .then(
+                if (!isDebtTransaction) {
+                    Modifier.combinedClickable(
+                        onClick = {},
+                        onLongClick = onLongClick
+                    )
+                } else {
+                    Modifier
+                }
             ),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDebtTransaction) 
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) 
+            else 
+                MaterialTheme.colorScheme.surface
+        )
     ) {
         ListItem(
-            headlineContent = { Text(categoryName, fontWeight = FontWeight.Bold) },
+            headlineContent = { 
+                Text(
+                    if (isDebtTransaction) "Hutang/Piutang (LUNAS)" else categoryName,
+                    fontWeight = FontWeight.Bold 
+                ) 
+            },
             supportingContent = { 
                 Column {
                     Text(transaction.note)

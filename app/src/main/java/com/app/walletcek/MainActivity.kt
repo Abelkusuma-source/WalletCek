@@ -26,6 +26,7 @@ import com.app.walletcek.ui.theme.WalletCekTheme
 import com.app.walletcek.viewmodel.WalletViewModel
 import com.app.walletcek.viewmodel.WalletViewModelFactory
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.app.walletcek.data.utils.PreferenceManager
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,9 +34,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val walletViewModel: WalletViewModel = viewModel(
-                factory = WalletViewModelFactory((application as WalletApplication).repository)
+                factory = WalletViewModelFactory(
+                    (application as WalletApplication).repository,
+                    PreferenceManager(applicationContext)
+                )
             )
-            WalletCekTheme {
+            val themeMode by walletViewModel.themeMode
+            val darkTheme = when (themeMode) {
+                "DARK" -> true
+                "LIGHT" -> false
+                else -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+
+            WalletCekTheme(darkTheme = darkTheme) {
                 MainScreen(walletViewModel)
             }
         }
@@ -51,6 +62,7 @@ fun MainScreen(viewModel: WalletViewModel) {
     val screens = listOf(
         Screen.Home,
         Screen.Report,
+        Screen.Debt,
         Screen.Settings
     )
 

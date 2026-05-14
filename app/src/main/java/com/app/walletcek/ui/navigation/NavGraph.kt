@@ -8,6 +8,8 @@ import com.app.walletcek.ui.screens.HomeScreen
 import com.app.walletcek.ui.screens.ReportScreen
 import com.app.walletcek.ui.screens.SettingsScreen
 import com.app.walletcek.ui.screens.AddTransactionScreen
+import com.app.walletcek.ui.screens.DebtScreen
+import com.app.walletcek.ui.screens.AddDebtScreen
 import com.app.walletcek.viewmodel.WalletViewModel
 
 @Composable
@@ -24,6 +26,18 @@ fun NavGraph(navController: NavHostController, viewModel: WalletViewModel) {
         }
         composable(Screen.Settings.route) {
             SettingsScreen(viewModel = viewModel)
+        }
+        composable(Screen.Debt.route) {
+            DebtScreen(
+                viewModel = viewModel,
+                onNavigateToAddDebt = { navController.navigate(Screen.AddDebt.route) }
+            )
+        }
+        composable(Screen.AddDebt.route) {
+            AddDebtScreen(
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         composable(Screen.AddTransaction.route) {
             AddTransactionScreen(
