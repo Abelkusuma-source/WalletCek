@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,10 +22,12 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DebtScreen(viewModel: WalletViewModel, onNavigateToAddDebt: () -> Unit) {
     val debts by viewModel.allDebts.collectAsState(initial = emptyList())
     var selectedDebt by remember { mutableStateOf<DebtEntity?>(null) }
+    var showResetDialog by remember { mutableStateOf(false) }
     
     val totalDebt = debts.filter { it.type == DebtType.DEBT && it.status == DebtStatus.OPEN }
         .sumOf { it.amount - it.paidAmount }
@@ -50,7 +53,46 @@ fun DebtScreen(viewModel: WalletViewModel, onNavigateToAddDebt: () -> Unit) {
         )
     }
 
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetDialog = false },
+            title = { Text("Reset Data") },
+            text = { Text("Apakah Anda yakin ingin menghapus semua data utang dan piutang? Tindakan ini tidak dapat dibatalkan.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteAllDebts()
+                        showResetDialog = false
+                    }
+                ) {
+                    Text("Hapus Semua", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) {
+                    Text("Batal")
+                }
+            }
+        )
+    }
+
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Utang & Piutang") },
+                actions = {
+                    if (debts.isNotEmpty()) {
+                        IconButton(onClick = { showResetDialog = true }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Reset Semua",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = onNavigateToAddDebt) {
                 Icon(Icons.Default.Add, contentDescription = "Tambah Utang/Piutang")
@@ -146,13 +188,7 @@ fun DebtItem(debt: DebtEntity, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .then(
-                if (debt.status == DebtStatus.OPEN) {
-                    Modifier.clickable { onClick() }
-                } else {
-                    Modifier
-                }
-            ),
+            .clickable(enabled = debt.status == DebtStatus.OPEN) { onClick() },
         colors = if (debt.status == DebtStatus.PAID) {
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
         } else {
@@ -212,7 +248,7 @@ fun DebtItem(debt: DebtEntity, onClick: () -> Unit) {
                     )
                 }
                 Text(
-                    text = debt.status.name,
+                    text = if (debt.status == DebtStatus.PAID) "LUNAS" else "BELUM LUNAS",
                     style = MaterialTheme.typography.labelSmall,
                     color = if (debt.status == DebtStatus.PAID) Color.Green else Color.Gray
                 )

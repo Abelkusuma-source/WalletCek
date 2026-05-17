@@ -35,9 +35,10 @@ fun ReportScreen(viewModel: WalletViewModel) {
         }
     }
 
-    val totalIncome = filteredTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-    val totalExpense = filteredTransactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
-    val balance = totalIncome - totalExpense
+    val totalIncome = filteredTransactions.filter { it.type == TransactionType.INCOME && it.categoryId != -1 }.sumOf { it.amount }
+    val totalExpense = filteredTransactions.filter { it.type == TransactionType.EXPENSE && it.categoryId != -1 }.sumOf { it.amount }
+    val balance = filteredTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount } -
+                  filteredTransactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
 
     val categoryBreakdown = remember(filteredTransactions, categories) {
         filteredTransactions.groupBy { it.categoryId }.map { (categoryId, trans) ->
@@ -152,7 +153,23 @@ fun ReportScreen(viewModel: WalletViewModel) {
             }
         } else {
             LazyColumn(modifier = Modifier.weight(1f)) {
-                items(categoryBreakdown) { (name, total) ->
+                val groupedBreakdown = filteredTransactions.groupBy { trans ->
+                    if (trans.categoryId == -1) {
+                        val title = when {
+                            trans.note.contains("Piutang", ignoreCase = true) -> "Piutang"
+                            trans.note.contains("Hutang", ignoreCase = true) -> "Hutang"
+                            trans.note.contains("Utang", ignoreCase = true) -> "Hutang"
+                            else -> "Hutang/Piutang"
+                        }
+                        if (trans.note.contains("(LUNAS)")) "$title (LUNAS)" else title
+                    } else {
+                        categories.find { it.id == trans.categoryId }?.name ?: "Unknown"
+                    }
+                }.mapValues { it.value.sumOf { t -> t.amount } }
+                 .toList()
+                 .sortedByDescending { it.second }
+
+                items(groupedBreakdown) { (name, total) ->
                     ListItem(
                         headlineContent = { Text(name) },
                         trailingContent = { Text(CurrencyUtils.formatRupiah(total), fontWeight = FontWeight.Bold) }

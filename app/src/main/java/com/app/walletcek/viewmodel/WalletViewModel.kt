@@ -54,13 +54,16 @@ class WalletViewModel(
     fun updateDebt(debt: DebtEntity, paymentAmount: Double) {
         viewModelScope.launch {
             repository.updateDebt(debt)
-            
+
             // Setiap pembayaran (cicilan) akan menambah saldo (Income)
             // Ini akan mengimbangi pengeluaran yang dicatat saat utang dibuat.
+            val lunasSuffix = if (debt.status == com.app.walletcek.data.model.DebtStatus.PAID) " (LUNAS)" else ""
+            val prefix = if (debt.type == com.app.walletcek.data.model.DebtType.RECEIVABLE) "Pembayaran Piutang" else "Pembayaran Hutang"
+            
             repository.insertTransaction(
                 TransactionEntity(
                     amount = paymentAmount,
-                    note = "Pembayaran Utang/Piutang: ${debt.personName}",
+                    note = "$prefix: ${debt.personName}$lunasSuffix",
                     date = System.currentTimeMillis(),
                     type = TransactionType.INCOME,
                     categoryId = -1
@@ -105,6 +108,12 @@ class WalletViewModel(
     fun deleteAllTransactions() {
         viewModelScope.launch {
             repository.deleteAllTransactions()
+        }
+    }
+
+    fun deleteAllDebts() {
+        viewModelScope.launch {
+            repository.deleteAllDebts()
         }
     }
 

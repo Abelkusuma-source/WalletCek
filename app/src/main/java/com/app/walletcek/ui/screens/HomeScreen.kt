@@ -20,10 +20,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.clip
 import com.app.walletcek.data.entity.TransactionEntity
 import com.app.walletcek.data.model.TransactionType
 import com.app.walletcek.utils.CurrencyUtils
 import com.app.walletcek.utils.DateUtils
+import com.app.walletcek.utils.FinancialLevel
+import com.app.walletcek.utils.FinancialLevelCalculator
 import com.app.walletcek.viewmodel.WalletViewModel
 import java.util.*
 
@@ -121,6 +124,12 @@ fun HomeScreen(viewModel: WalletViewModel) {
             }
         }
 
+        // Financial Level Card
+        val financialLevel = remember(totalIncome, totalExpense, balance) {
+            FinancialLevelCalculator.getFinancialLevel(totalIncome, totalExpense, balance)
+        }
+        FinancialLevelCard(financialLevel)
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -206,7 +215,15 @@ fun TransactionItem(
         ListItem(
             headlineContent = { 
                 Text(
-                    if (isDebtTransaction) "Hutang/Piutang (LUNAS)" else categoryName,
+                    if (isDebtTransaction) {
+                        val title = when {
+                            transaction.note.contains("Piutang", ignoreCase = true) -> "Piutang"
+                            transaction.note.contains("Hutang", ignoreCase = true) -> "Hutang"
+                            transaction.note.contains("Utang", ignoreCase = true) -> "Hutang"
+                            else -> "Hutang/Piutang"
+                        }
+                        if (transaction.note.contains("(LUNAS)")) "$title (LUNAS)" else title
+                    } else categoryName,
                     fontWeight = FontWeight.Bold 
                 ) 
             },
@@ -226,3 +243,56 @@ fun TransactionItem(
         )
     }
 }
+
+@Composable
+fun FinancialLevelCard(financialLevel: FinancialLevel) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = financialLevel.color.copy(alpha = 0.1f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = financialLevel.emoji, fontSize = 32.sp)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = financialLevel.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = financialLevel.color
+                    )
+                    Text(
+                        text = "\"${financialLevel.message}\"",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                LinearProgressIndicator(
+                    progress = (financialLevel.percent / 100).coerceIn(0.0, 1.0).toFloat(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    color = financialLevel.color,
+                    trackColor = financialLevel.color.copy(alpha = 0.2f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "${financialLevel.percent.toInt()}%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = financialLevel.color
+                )
+            }
+        }
+    }
+}
+
