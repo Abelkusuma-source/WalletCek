@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "814497985373",
+    "project_id": "wallet-5aa77",
+    "storage_bucket": "wallet-5aa77.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:814497985373:android:9bb3b427d06572459eaeb4",
+        "android_client_info": {
+          "package_name": "com.app.walletcek"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "814497985373-634l04mdrm1tskbqkt908epglqjldbq0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHsert4rXy2z6w1HPR5GlifH1gMJURB0g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "814497985373-634l04mdrm1tskbqkt908epglqjldbq0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

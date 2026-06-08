@@ -8,9 +8,9 @@ import com.app.walletcek.data.model.TransactionType
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val amount: Double,
-    val note: String,
-    val date: Long,
-    val type: TransactionType,
-    val categoryId: Int
+    val amount: Double = 0.0,
+    val note: String = "",
+    val date: Long = System.currentTimeMillis(),
+    val type: TransactionType = TransactionType.EXPENSE,
+    val categoryId: Int = 0
 )

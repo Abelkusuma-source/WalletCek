@@ -25,7 +25,10 @@ import com.app.walletcek.ui.navigation.Screen
 import com.app.walletcek.ui.theme.WalletCekTheme
 import com.app.walletcek.viewmodel.WalletViewModel
 import com.app.walletcek.viewmodel.WalletViewModelFactory
+import com.app.walletcek.viewmodel.AuthViewModel
+import com.app.walletcek.viewmodel.AuthViewModelFactory
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
 import com.app.walletcek.data.utils.PreferenceManager
 
 class MainActivity : ComponentActivity() {
@@ -39,6 +42,9 @@ class MainActivity : ComponentActivity() {
                     PreferenceManager(applicationContext)
                 )
             )
+            val authViewModel: AuthViewModel = viewModel(
+                factory = AuthViewModelFactory((application as WalletApplication).authRepository)
+            )
             val themeMode by walletViewModel.themeMode
             val darkTheme = when (themeMode) {
                 "DARK" -> true
@@ -47,17 +53,18 @@ class MainActivity : ComponentActivity() {
             }
 
             WalletCekTheme(darkTheme = darkTheme) {
-                MainScreen(walletViewModel)
+                MainScreen(walletViewModel, authViewModel)
             }
         }
     }
 }
 
 @Composable
-fun MainScreen(viewModel: WalletViewModel) {
+fun MainScreen(viewModel: WalletViewModel, authViewModel: AuthViewModel) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val currentUser by authViewModel.currentUser.collectAsState()
     
     val screens = listOf(
         Screen.Home,
@@ -100,7 +107,11 @@ fun MainScreen(viewModel: WalletViewModel) {
         }
     ) { innerPadding ->
         androidx.compose.foundation.layout.Box(modifier = Modifier.padding(innerPadding)) {
-            NavGraph(navController = navController, viewModel = viewModel)
+            NavGraph(
+                navController = navController, 
+                viewModel = viewModel,
+                authViewModel = authViewModel
+            )
         }
     }
 }

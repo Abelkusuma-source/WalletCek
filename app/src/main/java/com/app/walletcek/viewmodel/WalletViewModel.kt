@@ -117,6 +117,12 @@ class WalletViewModel(
         }
     }
 
+    fun syncFromCloud() {
+        viewModelScope.launch {
+            repository.syncFromCloud()
+        }
+    }
+
     init {
         checkAndInsertDefaultCategories()
         checkAndResetMonthlyData()

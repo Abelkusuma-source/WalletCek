@@ -20,11 +20,18 @@ import androidx.compose.ui.unit.dp
 import com.app.walletcek.data.entity.CategoryEntity
 import com.app.walletcek.data.model.TransactionType
 import com.app.walletcek.viewmodel.WalletViewModel
+import com.app.walletcek.viewmodel.AuthViewModel
+import androidx.compose.material.icons.filled.Logout
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(viewModel: WalletViewModel) {
+fun SettingsScreen(
+    viewModel: WalletViewModel,
+    authViewModel: AuthViewModel,
+    onLogout: () -> Unit
+) {
     val categories by viewModel.allCategories.collectAsState(initial = emptyList())
+    val currentUser by authViewModel.currentUser.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
     
@@ -100,6 +107,38 @@ fun SettingsScreen(viewModel: WalletViewModel) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Reset All Transactions")
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // User Info & Logout
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "Account",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Logged in as: ${currentUser?.email ?: "Guest"}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedButton(
+                        onClick = {
+                            authViewModel.logout()
+                            onLogout()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Icon(Icons.Default.Logout, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Logout")
                     }
                 }
             }

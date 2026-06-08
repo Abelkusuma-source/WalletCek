@@ -8,7 +8,7 @@ import com.app.walletcek.data.model.TransactionType
 data class CategoryEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
-    val name: String,
-    val type: TransactionType,
+    val name: String = "",
+    val type: TransactionType = TransactionType.EXPENSE,
     val isDefault: Boolean = false
 )

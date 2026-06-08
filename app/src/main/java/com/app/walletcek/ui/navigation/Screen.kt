@@ -14,4 +14,5 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
     object AddTransaction : Screen("add_transaction", "Add Transaction", Icons.Default.Home)
     object AddDebt : Screen("add_debt", "Add Debt", Icons.Default.Money)
+    object Login : Screen("login", "Login", Icons.Default.Home)
 }
