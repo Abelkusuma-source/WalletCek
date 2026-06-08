@@ -4,18 +4,26 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DocumentScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.app.Activity
+import android.content.Intent
 import com.app.walletcek.data.entity.CategoryEntity
 import com.app.walletcek.data.entity.TransactionEntity
 import com.app.walletcek.data.model.TransactionType
+import com.app.walletcek.ui.ocr.ReceiptScannerActivity
 import com.app.walletcek.viewmodel.WalletViewModel
 import kotlinx.coroutines.launch
 import java.util.*
+import java.util.regex.Pattern
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,6 +31,7 @@ fun AddTransactionScreen(
     viewModel: WalletViewModel,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -30,6 +39,21 @@ fun AddTransactionScreen(
     var note by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var selectedCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+
+    val scannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val scannedText = result.data?.getStringExtra("scanned_text") ?: ""
+            if (scannedText.isNotEmpty()) {
+                val parsedAmount = parseReceipt(scannedText)
+                if (parsedAmount > 0) {
+                    amount = parsedAmount.toLong().toString()
+                    note = "Scanned Receipt"
+                }
+            }
+        }
+    }
 
     val categories by viewModel.getCategoriesByType(selectedType).collectAsState(initial = emptyList())
 
@@ -75,6 +99,20 @@ fun AddTransactionScreen(
                     label = { Text("Income") },
                     modifier = Modifier.weight(1f)
                 )
+            }
+
+            // Scan Receipt Button
+            OutlinedButton(
+                onClick = { 
+                    val intent = Intent(context, ReceiptScannerActivity::class.java)
+                    scannerLauncher.launch(intent)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.DocumentScanner, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Scan Receipt")
             }
 
             // Amount Input
@@ -143,4 +181,58 @@ fun AddTransactionScreen(
             }
         }
     }
+}
+
+private fun parseReceipt(text: String): Double {
+    val lines = text.split("\n")
+    var potentialAmounts = mutableListOf<Double>()
+    
+    // Regex untuk menangkap angka (mendukung format 10.000 atau 10,000 atau 10000)
+    val amountPattern = Pattern.compile("([\\d]{1,3}([.,][\\d]{3})+|[\\d]{4,})")
+    
+    for (line in lines) {
+        val upperLine = line.uppercase()
+        
+        // Kata kunci yang biasanya merujuk pada total belanja di struk Indonesia/Inggris
+        val isTotalLine = upperLine.contains("TOTAL") || 
+                         upperLine.contains("AMT") || 
+                         upperLine.contains("HARGA") || 
+                         upperLine.contains("BAYAR") || 
+                         upperLine.contains("AMOUNT") ||
+                         upperLine.contains("DUE")
+
+        if (isTotalLine) {
+            val matcher = amountPattern.matcher(line)
+            while (matcher.find()) {
+                val cleanAmount = matcher.group(1)
+                    ?.replace(".", "")
+                    ?.replace(",", "")
+                    ?.toDoubleOrNull()
+                
+                if (cleanAmount != null && cleanAmount > 100) {
+                    potentialAmounts.add(cleanAmount)
+                }
+            }
+        }
+    }
+    
+    // Jika tidak ada baris dengan kata kunci, cari angka terbesar di seluruh teks
+    if (potentialAmounts.isEmpty()) {
+        val matcher = amountPattern.matcher(text)
+        while (matcher.find()) {
+            val cleanAmount = matcher.group(1)
+                ?.replace(".", "")
+                ?.replace(",", "")
+                ?.toDoubleOrNull()
+            
+            // Filter: Abaikan angka yang terlalu kecil (bukan harga) 
+            // atau terlalu besar (mungkin nomor telepon/no struk)
+            if (cleanAmount != null && cleanAmount > 500 && cleanAmount < 5000000) {
+                potentialAmounts.add(cleanAmount)
+            }
+        }
+    }
+    
+    // Ambil angka terbesar karena TOTAL biasanya angka paling besar di struk
+    return potentialAmounts.maxOrNull() ?: 0.0
 }

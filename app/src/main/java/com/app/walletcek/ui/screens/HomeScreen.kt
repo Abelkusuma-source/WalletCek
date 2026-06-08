@@ -77,7 +77,6 @@ fun HomeScreen(viewModel: WalletViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // ... (rest of the code stays mostly the same, but TransactionItem will be updated)
         Text(
             text = "Wallet Cek",
             style = MaterialTheme.typography.headlineMedium,
