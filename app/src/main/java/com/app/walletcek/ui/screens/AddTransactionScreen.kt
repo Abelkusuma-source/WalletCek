@@ -40,6 +40,13 @@ fun AddTransactionScreen(
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var selectedCategory by remember { mutableStateOf<CategoryEntity?>(null) }
 
+    // Helper function to format input with dots
+    fun formatDisplayAmount(input: String): String {
+        val clean = input.replace(".", "").replace(",", "")
+        val parsed = clean.toLongOrNull() ?: return ""
+        return String.format(Locale("id", "ID"), "%,d", parsed).replace(",", ".")
+    }
+
     val scannerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -48,7 +55,7 @@ fun AddTransactionScreen(
             if (scannedText.isNotEmpty()) {
                 val parsedAmount = parseReceipt(scannedText)
                 if (parsedAmount > 0) {
-                    amount = parsedAmount.toLong().toString()
+                    amount = formatDisplayAmount(parsedAmount.toLong().toString())
                     note = "Scanned Receipt"
                 }
             }
@@ -56,6 +63,21 @@ fun AddTransactionScreen(
     }
 
     val categories by viewModel.getCategoriesByType(selectedType).collectAsState(initial = emptyList())
+
+    val sharedText by viewModel.sharedText
+
+    LaunchedEffect(sharedText) {
+        sharedText?.let { text ->
+            if (text.isNotEmpty()) {
+                val parsedAmount = parseReceipt(text)
+                if (parsedAmount > 0) {
+                    amount = formatDisplayAmount(parsedAmount.toLong().toString())
+                    note = "Shared Receipt"
+                }
+                viewModel.clearSharedText()
+            }
+        }
+    }
 
     // Reset category when type changes
     LaunchedEffect(selectedType) {
@@ -118,7 +140,12 @@ fun AddTransactionScreen(
             // Amount Input
             OutlinedTextField(
                 value = amount,
-                onValueChange = { if (it.all { char -> char.isDigit() }) amount = it },
+                onValueChange = { input ->
+                    val clean = input.replace(".", "").replace(",", "")
+                    if (clean.all { it.isDigit() }) {
+                        amount = if (clean.isEmpty()) "" else formatDisplayAmount(clean)
+                    }
+                },
                 label = { Text("Amount") },
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -155,7 +182,8 @@ fun AddTransactionScreen(
             // Save Button
             Button(
                 onClick = {
-                    val amountDouble = amount.toDoubleOrNull()
+                    val cleanAmount = amount.replace(".", "").replace(",", "")
+                    val amountDouble = cleanAmount.toDoubleOrNull()
                     if (amountDouble == null || amountDouble <= 0) {
                         scope.launch { snackbarHostState.showSnackbar("Please enter a valid amount") }
                         return@Button

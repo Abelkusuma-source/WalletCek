@@ -79,6 +79,9 @@ dependencies {
     // ML Kit Text Recognition
     implementation(libs.play.services.mlkit.textrecognition)
 
+    // PDF Parsing
+    implementation(libs.pdfbox.android)
+
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

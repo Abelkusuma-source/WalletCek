@@ -26,6 +26,13 @@ class WalletViewModel(
     var themeMode = mutableStateOf(preferenceManager.getThemeMode())
         private set
 
+    var sharedText = mutableStateOf<String?>(null)
+        private set
+
+    fun clearSharedText() {
+        sharedText.value = null
+    }
+
     fun setThemeMode(mode: String) {
         themeMode.value = mode
         preferenceManager.setThemeMode(mode)

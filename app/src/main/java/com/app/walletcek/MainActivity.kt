@@ -14,6 +14,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -30,13 +31,25 @@ import com.app.walletcek.viewmodel.AuthViewModelFactory
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
 import com.app.walletcek.data.utils.PreferenceManager
+import android.content.Intent
+import android.net.Uri
+import com.app.walletcek.utils.FileProcessingUtils
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.SideEffect
 
 class MainActivity : ComponentActivity() {
+    private lateinit var walletViewModel: WalletViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
         setContent {
-            val walletViewModel: WalletViewModel = viewModel(
+            walletViewModel = viewModel(
                 factory = WalletViewModelFactory(
                     (application as WalletApplication).repository,
                     PreferenceManager(applicationContext)
@@ -45,6 +58,12 @@ class MainActivity : ComponentActivity() {
             val authViewModel: AuthViewModel = viewModel(
                 factory = AuthViewModelFactory((application as WalletApplication).authRepository)
             )
+            
+            // Handle shared intent if any
+            LaunchedEffect(Unit) {
+                handleIntent(intent)
+            }
+
             val themeMode by walletViewModel.themeMode
             val darkTheme = when (themeMode) {
                 "DARK" -> true
@@ -57,6 +76,25 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.action == Intent.ACTION_SEND) {
+            val uri = intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+            if (uri != null) {
+                lifecycleScope.launch {
+                    val extractedText = FileProcessingUtils.extractTextFromUri(this@MainActivity, uri)
+                    if (extractedText.isNotEmpty()) {
+                        walletViewModel.sharedText.value = extractedText
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -66,6 +104,14 @@ fun MainScreen(viewModel: WalletViewModel, authViewModel: AuthViewModel) {
     val currentDestination = navBackStackEntry?.destination
     val currentUser by authViewModel.currentUser.collectAsState()
     
+    val sharedText by viewModel.sharedText
+
+    LaunchedEffect(sharedText) {
+        if (sharedText != null) {
+            navController.navigate(Screen.AddTransaction.route)
+        }
+    }
+
     val screens = listOf(
         Screen.Home,
         Screen.Report,
