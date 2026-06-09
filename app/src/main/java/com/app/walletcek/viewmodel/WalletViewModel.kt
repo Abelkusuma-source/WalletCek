@@ -1,5 +1,6 @@
 package com.app.walletcek.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -9,14 +10,17 @@ import com.app.walletcek.data.entity.DebtEntity
 import com.app.walletcek.data.entity.TransactionEntity
 import com.app.walletcek.data.model.TransactionType
 import com.app.walletcek.data.repository.WalletRepository
+import com.app.walletcek.data.utils.BackupManager
 import com.app.walletcek.data.utils.PreferenceManager
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
 class WalletViewModel(
     private val repository: WalletRepository,
-    private val preferenceManager: PreferenceManager
+    private val preferenceManager: PreferenceManager,
+    private val backupManager: BackupManager
 ) : ViewModel() {
 
     val allCategories = repository.allCategories
@@ -42,9 +46,6 @@ class WalletViewModel(
         viewModelScope.launch {
             repository.insertDebt(debt)
             
-            // Mencatat pengeluaran saat utang/piutang dibuat
-            // Baik saya berutang (DEBT) maupun orang berutang (RECEIVABLE), 
-            // dianggap sebagai "beban/pengeluaran" terhadap saldo bersih.
             repository.insertTransaction(
                 TransactionEntity(
                     amount = debt.amount,
@@ -52,9 +53,10 @@ class WalletViewModel(
                         "Piutang ke ${debt.personName}" else "Hutang ke ${debt.personName}",
                     date = System.currentTimeMillis(),
                     type = TransactionType.EXPENSE,
-                    categoryId = -1
+                    categoryId = "-1"
                 )
             )
+            saveBackup()
         }
     }
 
@@ -62,8 +64,6 @@ class WalletViewModel(
         viewModelScope.launch {
             repository.updateDebt(debt)
 
-            // Setiap pembayaran (cicilan) akan menambah saldo (Income)
-            // Ini akan mengimbangi pengeluaran yang dicatat saat utang dibuat.
             val lunasSuffix = if (debt.status == com.app.walletcek.data.model.DebtStatus.PAID) " (LUNAS)" else ""
             val prefix = if (debt.type == com.app.walletcek.data.model.DebtType.RECEIVABLE) "Pembayaran Piutang" else "Pembayaran Hutang"
             
@@ -73,15 +73,17 @@ class WalletViewModel(
                     note = "$prefix: ${debt.personName}$lunasSuffix",
                     date = System.currentTimeMillis(),
                     type = TransactionType.INCOME,
-                    categoryId = -1
+                    categoryId = "-1"
                 )
             )
+            saveBackup()
         }
     }
 
     fun deleteDebt(debt: DebtEntity) {
         viewModelScope.launch {
             repository.deleteDebt(debt)
+            saveBackup()
         }
     }
 
@@ -91,48 +93,78 @@ class WalletViewModel(
     fun insertTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             repository.insertTransaction(transaction)
+            saveBackup()
         }
     }
 
     fun deleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             repository.deleteTransaction(transaction)
+            saveBackup()
         }
     }
 
     fun insertCategory(category: CategoryEntity) {
         viewModelScope.launch {
             repository.insertCategory(category)
+            saveBackup()
         }
     }
 
     fun deleteCategory(category: CategoryEntity) {
         viewModelScope.launch {
             repository.deleteCategory(category)
+            saveBackup()
         }
     }
 
     fun deleteAllTransactions() {
         viewModelScope.launch {
             repository.deleteAllTransactions()
+            saveBackup()
         }
     }
 
     fun deleteAllDebts() {
         viewModelScope.launch {
             repository.deleteAllDebts()
+            saveBackup()
         }
     }
 
-    fun syncFromCloud() {
-        viewModelScope.launch {
-            repository.syncFromCloud()
+    private suspend fun saveBackup() {
+        try {
+            backupManager.saveBackup(
+                transactions = allTransactions.first(),
+                debts = allDebts.first(),
+                categories = allCategories.first()
+            )
+        } catch (e: Exception) {
+            Log.e("WalletViewModel", "saveBackup failed", e)
         }
+    }
+
+    suspend fun syncFromCloud() {
+        repository.syncFromCloud()
     }
 
     init {
+        restoreFromBackup()
         checkAndInsertDefaultCategories()
         checkAndResetMonthlyData()
+    }
+
+    private fun restoreFromBackup() {
+        viewModelScope.launch {
+            val restored = backupManager.restoreIfNeeded(
+                transactionCount = repository.getTransactionCount(),
+                debtCount = repository.getDebtCount(),
+                categoryCount = repository.getCategoryCount()
+            )
+            if (restored) {
+                Log.i("WalletViewModel", "Data restored from local backup")
+            }
+        }
     }
 
     private fun clearAllData() {
@@ -148,14 +180,11 @@ class WalletViewModel(
         val lastResetMonth = preferenceManager.getLastResetMonth()
 
         if (lastResetMonth == -1) {
-            // Jika baru pertama kali (fitur baru dipasang), catat bulan sekarang tanpa hapus data.
-            // Penghapusan baru akan terjadi saat bulan berganti dari bulan ini ke bulan depan.
             preferenceManager.setLastResetMonth(currentMonth)
         } else if (lastResetMonth != currentMonth) {
-            // Bulan telah berganti, hapus data yang sudah LUNAS dan Transaksi Recent
+            // Bulan telah berganti — hanya hapus utang yang sudah lunas, data transaksi tetap dipertahankan
             viewModelScope.launch {
                 repository.deletePaidDebts()
-                repository.deleteAllTransactions()
                 preferenceManager.setLastResetMonth(currentMonth)
             }
         }
@@ -186,12 +215,13 @@ class WalletViewModel(
 
 class WalletViewModelFactory(
     private val repository: WalletRepository,
-    private val preferenceManager: PreferenceManager
+    private val preferenceManager: PreferenceManager,
+    private val backupManager: BackupManager
 ) : ViewModelProvider.Factory {
     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(WalletViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return WalletViewModel(repository, preferenceManager) as T
+            return WalletViewModel(repository, preferenceManager, backupManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

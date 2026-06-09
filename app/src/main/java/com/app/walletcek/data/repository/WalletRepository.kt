@@ -1,5 +1,6 @@
 package com.app.walletcek.data.repository
 
+import android.util.Log
 import com.app.walletcek.data.dao.CategoryDao
 import com.app.walletcek.data.dao.DebtDao
 import com.app.walletcek.data.dao.TransactionDao
@@ -19,26 +20,37 @@ class WalletRepository(
     val allCategories: Flow<List<CategoryEntity>> = categoryDao.getAllCategories()
     val allDebts: Flow<List<DebtEntity>> = debtDao.getAllDebts()
 
-    suspend fun getDebtById(id: Int): DebtEntity? = debtDao.getDebtById(id)
+    suspend fun getDebtById(id: String): DebtEntity? = debtDao.getDebtById(id)
 
     suspend fun insertDebt(debt: DebtEntity) {
         debtDao.insertDebt(debt)
-        firestoreService.syncDebt(debt)
+        try {
+            firestoreService.syncDebt(debt)
+        } catch (e: Exception) {
+            Log.e("WalletRepository", "syncDebt failed", e)
+        }
     }
 
     suspend fun updateDebt(debt: DebtEntity) {
         debtDao.updateDebt(debt)
-        firestoreService.syncDebt(debt)
+        try {
+            firestoreService.syncDebt(debt)
+        } catch (e: Exception) {
+            Log.e("WalletRepository", "syncDebt failed", e)
+        }
     }
 
     suspend fun deleteDebt(debt: DebtEntity) {
         debtDao.deleteDebt(debt)
-        firestoreService.deleteDebt(debt.id)
+        try {
+            firestoreService.deleteDebt(debt.id)
+        } catch (e: Exception) {
+            Log.e("WalletRepository", "deleteDebt failed", e)
+        }
     }
 
     suspend fun deleteAllDebts() {
         debtDao.deleteAllDebts()
-        // Firestore bulk delete can be added if needed
     }
 
     suspend fun deletePaidDebts() {
@@ -50,12 +62,20 @@ class WalletRepository(
 
     suspend fun insertTransaction(transaction: TransactionEntity) {
         transactionDao.insertTransaction(transaction)
-        firestoreService.syncTransaction(transaction)
+        try {
+            firestoreService.syncTransaction(transaction)
+        } catch (e: Exception) {
+            Log.e("WalletRepository", "syncTransaction failed", e)
+        }
     }
 
     suspend fun deleteTransaction(transaction: TransactionEntity) {
         transactionDao.deleteTransaction(transaction)
-        firestoreService.deleteTransaction(transaction.id)
+        try {
+            firestoreService.deleteTransaction(transaction.id)
+        } catch (e: Exception) {
+            Log.e("WalletRepository", "deleteTransaction failed", e)
+        }
     }
 
     suspend fun deleteAllTransactions() {
@@ -64,30 +84,48 @@ class WalletRepository(
 
     suspend fun insertCategory(category: CategoryEntity) {
         categoryDao.insertCategory(category)
-        firestoreService.syncCategory(category)
+        try {
+            firestoreService.syncCategory(category)
+        } catch (e: Exception) {
+            Log.e("WalletRepository", "syncCategory failed", e)
+        }
     }
 
     suspend fun insertCategories(categories: List<CategoryEntity>) {
         categoryDao.insertCategories(categories)
-        categories.forEach { firestoreService.syncCategory(it) }
+        categories.forEach { category ->
+            try {
+                firestoreService.syncCategory(category)
+            } catch (e: Exception) {
+                Log.e("WalletRepository", "syncCategory failed", e)
+            }
+        }
     }
 
     suspend fun deleteCategory(category: CategoryEntity) {
         categoryDao.deleteCategory(category)
-        firestoreService.deleteCategory(category.id)
+        try {
+            firestoreService.deleteCategory(category.id)
+        } catch (e: Exception) {
+            Log.e("WalletRepository", "deleteCategory failed", e)
+        }
     }
 
+    suspend fun getTransactionCount(): Int = transactionDao.getTransactionCount()
+    suspend fun getDebtCount(): Int = debtDao.getDebtCount()
     suspend fun getCategoryCount(): Int = categoryDao.getCategoryCount()
 
     suspend fun syncFromCloud() {
-        // Fetch from Firestore
-        val cloudTransactions = firestoreService.fetchTransactions()
-        val cloudDebts = firestoreService.fetchDebts()
-        val cloudCategories = firestoreService.fetchCategories()
+        runCatching {
+            firestoreService.fetchTransactions().forEach { transactionDao.insertTransaction(it) }
+        }.onFailure { Log.e("WalletRepository", "syncFromCloud: transactions failed", it) }
 
-        // Insert into Local Room (using replace on conflict)
-        cloudTransactions.forEach { transactionDao.insertTransaction(it) }
-        cloudDebts.forEach { debtDao.insertDebt(it) }
-        cloudCategories.forEach { categoryDao.insertCategory(it) }
+        runCatching {
+            firestoreService.fetchDebts().forEach { debtDao.insertDebt(it) }
+        }.onFailure { Log.e("WalletRepository", "syncFromCloud: debts failed", it) }
+
+        runCatching {
+            firestoreService.fetchCategories().forEach { categoryDao.insertCategory(it) }
+        }.onFailure { Log.e("WalletRepository", "syncFromCloud: categories failed", it) }
     }
 }

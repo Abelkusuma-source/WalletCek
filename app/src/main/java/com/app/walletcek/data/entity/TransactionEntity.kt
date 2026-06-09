@@ -4,13 +4,15 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.app.walletcek.data.model.TransactionType
 
+import java.util.UUID
+
 @Entity(tableName = "transactions")
 data class TransactionEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    @PrimaryKey
+    val id: String = UUID.randomUUID().toString(),
     val amount: Double = 0.0,
     val note: String = "",
     val date: Long = System.currentTimeMillis(),
     val type: TransactionType = TransactionType.EXPENSE,
-    val categoryId: Int = 0
+    val categoryId: String = ""
 )

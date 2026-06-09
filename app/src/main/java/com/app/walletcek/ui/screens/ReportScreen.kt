@@ -35,14 +35,14 @@ fun ReportScreen(viewModel: WalletViewModel) {
         }
     }
 
-    val totalIncome = filteredTransactions.filter { it.type == TransactionType.INCOME && it.categoryId != -1 }.sumOf { it.amount }
-    val totalExpense = filteredTransactions.filter { it.type == TransactionType.EXPENSE && it.categoryId != -1 }.sumOf { it.amount }
+    val totalIncome = filteredTransactions.filter { it.type == TransactionType.INCOME && it.categoryId != "-1" }.sumOf { it.amount }
+    val totalExpense = filteredTransactions.filter { it.type == TransactionType.EXPENSE && it.categoryId != "-1" }.sumOf { it.amount }
     val balance = filteredTransactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount } -
                   filteredTransactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
 
     val categoryBreakdown = remember(filteredTransactions, categories) {
         filteredTransactions.groupBy { it.categoryId }.map { (categoryId, trans) ->
-            val categoryName = if (categoryId == -1) {
+            val categoryName = if (categoryId == "-1") {
                 "Hutang/Piutang"
             } else {
                 categories.find { it.id == categoryId }?.name ?: "Unknown"
@@ -154,7 +154,7 @@ fun ReportScreen(viewModel: WalletViewModel) {
         } else {
             LazyColumn(modifier = Modifier.weight(1f)) {
                 val groupedBreakdown = filteredTransactions.groupBy { trans ->
-                    if (trans.categoryId == -1) {
+                    if (trans.categoryId == "-1") {
                         val title = when {
                             trans.note.contains("Piutang", ignoreCase = true) -> "Piutang"
                             trans.note.contains("Hutang", ignoreCase = true) -> "Hutang"

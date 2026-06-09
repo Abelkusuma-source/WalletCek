@@ -39,10 +39,10 @@ fun HomeScreen(viewModel: WalletViewModel) {
     var showDeleteDialog by remember { mutableStateOf<TransactionEntity?>(null) }
 
     val totalIncome = remember(transactions) {
-        transactions.filter { it.type == TransactionType.INCOME && it.categoryId != -1 }.sumOf { it.amount }
+        transactions.filter { it.type == TransactionType.INCOME && it.categoryId != "-1" }.sumOf { it.amount }
     }
     val totalExpense = remember(transactions) {
-        transactions.filter { it.type == TransactionType.EXPENSE && it.categoryId != -1 }.sumOf { it.amount }
+        transactions.filter { it.type == TransactionType.EXPENSE && it.categoryId != "-1" }.sumOf { it.amount }
     }
     val balance = remember(transactions) {
         transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount } -
@@ -187,7 +187,7 @@ fun TransactionItem(
     categoryName: String,
     onLongClick: () -> Unit
 ) {
-    val isDebtTransaction = transaction.categoryId == -1
+    val isDebtTransaction = transaction.categoryId == "-1"
     
     Card(
         modifier = Modifier

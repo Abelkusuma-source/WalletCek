@@ -5,10 +5,12 @@ import androidx.room.PrimaryKey
 import com.app.walletcek.data.model.DebtStatus
 import com.app.walletcek.data.model.DebtType
 
+import java.util.UUID
+
 @Entity(tableName = "debts")
 data class DebtEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    @PrimaryKey
+    val id: String = UUID.randomUUID().toString(),
     val personName: String = "",
     val type: DebtType = DebtType.DEBT,
     val amount: Double = 0.0,

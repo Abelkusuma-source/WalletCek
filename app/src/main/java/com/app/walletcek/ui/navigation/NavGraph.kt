@@ -24,14 +24,11 @@ fun NavGraph(
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
 
+    // Navigasi otomatis dari Login ke Home jika user sudah login
     androidx.compose.runtime.LaunchedEffect(currentUser) {
-        if (currentUser != null) {
-            viewModel.syncFromCloud()
-            // Auto navigate if user is already logged in and we are on login screen
-            if (navController.currentDestination?.route == Screen.Login.route) {
-                navController.navigate(Screen.Home.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
-                }
+        if (currentUser != null && navController.currentDestination?.route == Screen.Login.route) {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Login.route) { inclusive = true }
             }
         }
     }
@@ -43,9 +40,7 @@ fun NavGraph(
         composable(Screen.Login.route) {
             LoginScreen(
                 viewModel = authViewModel,
-                onLoginSuccess = { 
-                    println("DEBUG: Login Success Triggered")
-                    viewModel.syncFromCloud()
+                onLoginSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }

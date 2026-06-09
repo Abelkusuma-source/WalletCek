@@ -56,7 +56,7 @@ fun AddTransactionScreen(
                 val parsedAmount = parseReceipt(scannedText)
                 if (parsedAmount > 0) {
                     amount = formatDisplayAmount(parsedAmount.toLong().toString())
-                    note = "Scanned Receipt"
+                    note = scannedText.take(300)
                 }
             }
         }
@@ -72,7 +72,7 @@ fun AddTransactionScreen(
                 val parsedAmount = parseReceipt(text)
                 if (parsedAmount > 0) {
                     amount = formatDisplayAmount(parsedAmount.toLong().toString())
-                    note = "Shared Receipt"
+                    note = text.take(300)
                 }
                 viewModel.clearSharedText()
             }
@@ -216,7 +216,7 @@ private fun parseReceipt(text: String): Double {
     var potentialAmounts = mutableListOf<Double>()
     
     // Regex untuk menangkap angka (mendukung format 10.000 atau 10,000 atau 10000)
-    val amountPattern = Pattern.compile("([\\d]{1,3}([.,][\\d]{3})+|[\\d]{4,})")
+    val amountPattern = Pattern.compile("(\\d{1,3}(?:[.,]\\d{3})+|\\d{2,})")
     
     for (line in lines) {
         val upperLine = line.uppercase()
@@ -255,7 +255,7 @@ private fun parseReceipt(text: String): Double {
             
             // Filter: Abaikan angka yang terlalu kecil (bukan harga) 
             // atau terlalu besar (mungkin nomor telepon/no struk)
-            if (cleanAmount != null && cleanAmount > 500 && cleanAmount < 5000000) {
+            if (cleanAmount != null && cleanAmount > 100 && cleanAmount < 100000000) {
                 potentialAmounts.add(cleanAmount)
             }
         }

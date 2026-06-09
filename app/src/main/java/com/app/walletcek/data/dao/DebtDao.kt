@@ -10,7 +10,7 @@ interface DebtDao {
     fun getAllDebts(): Flow<List<DebtEntity>>
 
     @Query("SELECT * FROM debts WHERE id = :id")
-    suspend fun getDebtById(id: Int): DebtEntity?
+    suspend fun getDebtById(id: String): DebtEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDebt(debt: DebtEntity)
@@ -26,4 +26,7 @@ interface DebtDao {
 
     @Query("DELETE FROM debts WHERE status = 'PAID'")
     suspend fun deletePaidDebts()
+
+    @Query("SELECT COUNT(*) FROM debts")
+    suspend fun getDebtCount(): Int
 }

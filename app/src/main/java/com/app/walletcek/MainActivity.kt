@@ -30,6 +30,7 @@ import com.app.walletcek.viewmodel.AuthViewModel
 import com.app.walletcek.viewmodel.AuthViewModelFactory
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.collectAsState
+import com.app.walletcek.data.utils.BackupManager
 import com.app.walletcek.data.utils.PreferenceManager
 import android.content.Intent
 import android.net.Uri
@@ -52,7 +53,8 @@ class MainActivity : ComponentActivity() {
             walletViewModel = viewModel(
                 factory = WalletViewModelFactory(
                     (application as WalletApplication).repository,
-                    PreferenceManager(applicationContext)
+                    PreferenceManager(applicationContext),
+                    BackupManager(applicationContext)
                 )
             )
             val authViewModel: AuthViewModel = viewModel(
@@ -109,6 +111,12 @@ fun MainScreen(viewModel: WalletViewModel, authViewModel: AuthViewModel) {
     LaunchedEffect(sharedText) {
         if (sharedText != null) {
             navController.navigate(Screen.AddTransaction.route)
+        }
+    }
+
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            viewModel.syncFromCloud()
         }
     }
 
